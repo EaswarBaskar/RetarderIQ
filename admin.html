@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retarder IQ Admin</title>
+  
+  
+  
+  <link rel="stylesheet" href="css/admin-inline.css?v=78">
+  <style>
+    #statusDonut,
+    #failurePie {
+      display: grid !important;
+      flex: 0 0 auto !important;
+      place-items: center !important;
+      position: relative !important;
+      border-radius: 50% !important;
+      aspect-ratio: 1 / 1 !important;
+    }
+    #statusDonut { width: 148px !important; height: 148px !important; }
+    #failurePie { width: 132px !important; height: 132px !important; }
+    #statusDonut::after,
+    #failurePie::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: #fff;
+    }
+    #statusDonut::after { width: 92px; height: 92px; }
+    #failurePie::after { width: 78px; height: 78px; }
+    #statusDonut strong,
+    #failurePie strong { position: relative; z-index: 1; }
+    .status-chart,
+    .failure-visual,
+    .insight-pie { display: flex !important; align-items: center !important; gap: 20px !important; }
+    .status-overview { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; }
+    .gauge-wrap { display: grid !important; place-items: center !important; min-height: 190px !important; }
+    .gauge { width: 220px !important; height: 110px !important; position: relative !important; overflow: hidden !important; border-radius: 220px 220px 0 0 !important; background: conic-gradient(from 270deg at 50% 100%, #10b981 0deg 60deg, #f59e0b 60deg 120deg, #ef4444 120deg 180deg) !important; }
+    .gauge::after { content: ""; position: absolute; width: 170px; height: 85px; left: 25px; bottom: 0; border-radius: 170px 170px 0 0; background: #fff; }
+    .gauge-value { position: absolute !important; z-index: 1 !important; bottom: 10px !important; left: 0 !important; right: 0 !important; text-align: center !important; font-size: 28px !important; font-weight: 800 !important; }
+    #statusLegend,
+    #failureLegend,
+    .insight-pie .chart-legend { display: grid !important; gap: 9px !important; line-height: 1.35 !important; }
+    #failureLegend { max-height: 150px !important; overflow-y: auto !important; padding-right: 8px !important; }
+    #statusLegend span,
+    #failureLegend span,
+    .insight-pie .chart-legend span { display: flex !important; align-items: center !important; gap: 7px !important; white-space: normal !important; }
+    .insight-pie-disc { width: 142px !important; height: 142px !important; flex: 0 0 142px !important; display: grid !important; place-items: center !important; position: relative !important; border-radius: 50% !important; }
+    .insight-pie-disc::after { content: ""; width: 82px; height: 82px; border-radius: 50%; background: #fff; position: absolute; }
+    .insight-pie-disc strong { position: relative; z-index: 1; }
+    @keyframes adminCardIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes adminDonutIn { from { transform: scale(.72) rotate(-90deg); opacity: .2; } to { transform: scale(1) rotate(0); opacity: 1; } }
+    @keyframes adminBarIn { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    @keyframes adminItemIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+    #dashboard .kpi, #dashboard .chart-card, #dashboard .insight-card { animation: adminCardIn .5s ease both; }
+    #dashboard .kpi:nth-child(2) { animation-delay: .06s; } #dashboard .kpi:nth-child(3) { animation-delay: .12s; }
+    #dashboard .kpi:nth-child(4) { animation-delay: .18s; } #dashboard .kpi:nth-child(5) { animation-delay: .24s; }
+    #statusDonut, #failurePie, .insight-pie-disc, #faultGauge { animation: adminDonutIn .75s cubic-bezier(.2,.8,.2,1) both; }
+    .bar-fill { transform-origin: left center; animation: adminBarIn .8s ease-out both; }
+    .trend-item { animation: adminItemIn .35s ease both; }
+    .trend-item:nth-child(2) { animation-delay: .05s; } .trend-item:nth-child(3) { animation-delay: .1s; }
+    .trend-item:nth-child(4) { animation-delay: .15s; } .trend-item:nth-child(5) { animation-delay: .2s; }
+    @media (prefers-reduced-motion: reduce) { #dashboard *, #dashboard *::before, #dashboard *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section id="loginCard" class="card">
+      <h1>Retarder IQ Admin</h1>
+      <p class="muted">Sign in to manage diagnostic reports and technician accounts.</p>
+      <form id="loginForm" class="grid">
+        <label>Email<input id="email" type="email" required autocomplete="username"></label>
+        <label>Password<input id="password" type="password" required autocomplete="current-password"></label>
+        <div class="actions"><button>Sign In</button></div>
+      </form>
+      <p id="loginStatus" class="status"></p>
+    </section>
+
+    <section id="dashboard" class="hidden">
+      <div class="topbar">
+        <div><p class="eyebrow">Retarder IQ · Operations</p><h1>Diagnostic Dashboard</h1><p>Track field cases, technician activity, and recurring failures.</p></div>
+        <div class="topbar-actions"><button id="exportBtn" class="secondary">Export CSV</button><button id="refreshBtn" class="secondary">Refresh Data</button><button id="logoutBtn" class="danger">Sign Out</button></div>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-label">Total Cases</div><div id="kpiTotal" class="kpi-value">—</div><div class="kpi-note">All submitted diagnostics</div></div>
+        <div class="kpi"><div class="kpi-label">Fault Found</div><div id="kpiFaults" class="kpi-value">—</div><div class="kpi-note">Needs corrective action</div></div>
+        <div class="kpi"><div class="kpi-label">Working Satisfactory</div><div id="kpiWorking" class="kpi-value">—</div><div class="kpi-note">No fault detected</div></div>
+        <div class="kpi"><div class="kpi-label">Incomplete Cases</div><div id="kpiIncomplete" class="kpi-value">—</div><div class="kpi-note">Need completion</div></div>
+        <div class="kpi"><div class="kpi-label">Active Technicians</div><div id="kpiUsers" class="kpi-value">—</div><div class="kpi-note">Named accounts</div></div>
+      </div>
+
+      <div class="status-overview">
+        <section class="card chart-card"><div class="card-head"><h2>Case Status</h2><span class="muted">Overall distribution</span></div><div class="status-chart"><div id="statusDonut" class="donut"><strong id="statusTotal">0</strong></div><div id="statusLegend" class="chart-legend"></div></div></section>
+        <section class="card chart-card"><div class="card-head"><h2>Fault Rate</h2><span class="muted">Cases requiring action</span></div><div class="gauge-wrap"><div><div id="faultGauge" class="gauge"><div id="faultRate" class="gauge-value">0%</div></div><div class="gauge-label">Fault-found percentage</div></div></div></section>
+      </div>
+
+      <div class="analytics">
+        <section class="card chart-card"><div class="card-head"><h2>Failure Distribution</h2><span class="muted">Suspected product</span></div><div class="failure-visual"><div id="failurePie" class="failure-pie"><strong id="failurePieTotal">0</strong></div><div id="failureLegend" class="chart-legend"></div></div><div id="failureChart"></div></section>
+        <section class="card chart-card"><div class="card-head"><h2>Recent Activity</h2><span class="muted">Latest cases</span></div><div id="recentActivity" class="trend-list"></div></section>
+      </div>
+
+      <div class="insight-grid">
+        <section class="card insight-card"><h2>Complaints by Region</h2><div id="regionChart" class="insight-pie-host"></div></section>
+        <section class="card insight-card"><h2>Vehicle Manufacturer</h2><div id="manufacturerChart" class="insight-pie-host"></div></section>
+        <section class="card insight-card"><h2>Diagnostic Feedback</h2><div id="feedbackChart" class="insight-pie-host"></div></section>
+        <section class="card insight-card"><h2>Diagnostic Language Used</h2><div id="languageChart" class="insight-pie-host"></div></section>
+        <section class="card insight-card"><h2>Complaint Trend</h2><div id="trendChart" class="trend-list"></div></section>
+      </div>
+      <section class="card toolbar">
+        <div class="card-head"><h2>Case Explorer</h2><span class="muted">Search across recent reports</span></div>
+        <div class="actions">
+          <label>Search reports<input id="search" placeholder="Case ID, chassis, registration, dealer, technician"></label>
+          <label>Status<select id="statusFilter"><option value="">All statuses</option><option>FAULT FOUND</option><option>WORKING SATISFACTORY</option><option>INCOMPLETE</option></select></label>
+          <label>Region<select id="regionFilter"><option value="">All regions</option><option>North</option><option>South</option><option>East</option><option>West</option></select></label>
+          <label>Vehicle Manufacturer<select id="manufacturerFilter"><option value="">All manufacturers</option></select></label>
+          <label>Language<select id="languageFilter"><option value="">All languages</option><option>English</option><option>Tamil</option><option>Malayalam</option><option>Hindi</option><option>Telugu</option><option>Kannada</option></select></label>
+          <label>Feedback<select id="feedbackFilter"><option value="">All feedback</option><option value="1">1/5</option><option value="2">2/5</option><option value="3">3/5</option><option value="4">4/5</option><option value="5">5/5</option><option value="none">Not provided</option></select></label>
+          <label>From Date<input id="dateFromFilter" type="date"></label>
+          <label>To Date<input id="dateToFilter" type="date"></label>
+          <label>Odometer / KM<select id="kmFilter"><option value="">All KM ranges</option><option value="0-50000">0–50,000 km</option><option value="50001-100000">50,001–100,000 km</option><option value="100001-plus">100,001+ km</option></select></label>
+        </div>
+        <p id="reportStatus" class="status"></p>
+        <div style="display:flex;justify-content:flex-end;margin:10px 0;"><button id="deleteSelectedBtn" class="danger" disabled>Delete Selected</button></div>
+        <div class="table-wrap"><table><thead><tr><th><input id="selectAllCases" type="checkbox" aria-label="Select all visible cases"></th><th>Case</th><th>Date</th><th>Status</th><th>Technician</th><th>Vehicle</th><th>Language Used</th><th>Dealer</th><th>Part</th><th></th></tr></thead><tbody id="reportsBody"></tbody></table></div>
+        <div id="casePagination" class="pagination" aria-label="Report pages"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>Technician Accounts</h2><span class="muted">Manage named access</span></div>
+        <form id="userForm" class="grid">
+          <label>Email<input id="userEmail" type="email" required></label>
+          <label>Temporary password<input id="userPassword" type="password" minlength="10" required></label>
+          <label>Role<select id="userRole"><option value="technician">Technician</option><option value="admin">Admin</option></select></label>
+          <div class="actions"><button>Create Account</button></div>
+        </form>
+        <p id="userStatus" class="status"></p>
+        <div class="table-wrap"><table><thead><tr><th>Email</th><th>Role</th><th>Active</th><th>Created</th><th></th></tr></thead><tbody id="usersBody"></tbody></table></div>
+      </section>
+
+      <section id="detailCard" class="card hidden"><div class="card-head report-card-head"><h2>Diagnostic Result</h2><div class="topbar-actions"><button id="printDetailBtn" class="secondary">Export PDF</button><span class="report-tag">REPORT</span></div></div><div id="detailContent"></div></section>
+    </section>
+  </main>
+  <script src="/js/reportRenderer.js"></script>
+  
+  <script src="js/admin.js"></script>
+</body>
+</html>
