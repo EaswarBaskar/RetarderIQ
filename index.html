@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RETARDER IQ — Smart Diagnostic Assistant (AL · BS-VI)</title>
+  <meta name="description" content="Offline step-by-step diagnostic for Ashok Leyland BS-VI Retarder (HB1200).">
+  <link rel="icon" type="image/png" href="/asset/retarder-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="css/fonts.css">
+  <script src="js/languages.js?v=11"></script>
+  
+  
+  <link rel="stylesheet" href="css/index-inline.css">
+</head>
+
+<body>
+
+
+
+  <!-- =================== Splash =================== -->
+  <div class="splash" id="splash">
+    <div class="splash-card">
+      <div class="title">RETARDER IQ</div>
+      <h1 data-i18n="app_headline">Smart Diagnostic Assistant</h1>
+      <p class="muted" id="tagline" data-i18n="app_tagline">Guided troubleshooting — like a senior engineer beside you.
+      </p>
+      <div class="ribbon">
+        <div class="rb" id="rb"></div>
+      </div>
+      <small data-i18n="loading_msg">Loading modules · Calibrating checks · Preparing steps</small>
+    </div>
+  </div>
+
+  <header>
+    <div class="header-inner">
+      <div class="brand-title">
+        <div class="kicker">RETARDER IQ</div>
+        <div class="headline" data-i18n="app_headline">Smart Diagnostic Assistant</div>
+      </div>
+    </div>
+    <div class="global-language-control" title="Select language">
+      <span aria-hidden="true">🌐</span>
+      <select class="lang-select" aria-label="Select language" onchange="if(typeof setLanguage==='function') setLanguage(this.value)">
+        <option value="en">English</option>
+        <option value="ta">தமிழ்</option>
+        <option value="ml">മലയാളം</option>
+        <option value="hi">हिन्दी</option>
+        <option value="te">తెలుగు</option>
+        <option value="kn">ಕನ್ನಡ</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <div class="container active" id="disclaimerScreen">
+      <!-- Language Selector -->
+      <div class="lang-select-wrapper">
+        <select class="lang-select" onchange="if(typeof setLanguage==='function') setLanguage(this.value)">
+          <option value="en">English</option>
+          <option value="ta">தமிழ்</option>
+          <option value="ml">മലയാളം</option>
+          <option value="hi">हिन्दी</option>
+          <option value="te">తెలుగు</option>
+          <option value="kn">ಕನ್ನಡ</option>
+        </select>
+      </div>
+
+
+      <h2 class="disclaimer-title" data-i18n="disclaimer_title"></h2>
+      <ul class="disclaimer-list">
+        <li data-i18n="d1"></li>
+        <li data-i18n="d2"></li>
+        <li data-i18n="d3"></li>
+        <li data-i18n="d4"></li>
+      </ul>
+
+
+      <div class="checkbox-group">
+        <div class="enhanced-checkbox" style="margin-bottom: 10px;">
+          <input type="checkbox" id="acceptCheck" class="animated-checkbox" />
+          <label for="acceptCheck" data-i18n="confirm"></label>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+        <button id="acceptDisclaimerBtn" class="bigBtn" onclick="acceptDisclaimer()" data-i18n="accept"
+          style="flex: 1; min-width: 200px;" disabled aria-disabled="true"></button>
+      </div>
+    </div>
+
+    
+
+    
+
+    <!-- =================== Emission Selection (fixed) =================== -->
+
+    <section class="card fade-slide" id="emissionSelect" style="display:none">
+
+      <!-- Watermark Image -->
+      <img src="asset/optimized/ashokleyland.png" class="bg-logo" alt="Ashok Leyland logo" decoding="async">
+
+      <div class="card-h">
+        <div class="title" data-i18n="emission_sel_title">Select Vehicle Model</div>
+        <span class="tag" data-i18n="step_tag_1">Step 1</span>
+      </div>
+      <div class="card-b">
+        <div class="grid">
+          <button class="bigBtn emission-btn fade-slide fade-delay-1" onclick="handleEmissionSelect('BS-IV')"
+            aria-label="Select Ashok Leyland BS IV">
+            <span class="emission-btn-icon" aria-hidden="true">🚛</span>
+            <span class="emission-btn-label" data-i18n="model_ashok_leyland_bs4">ASHOK LEYLAND — BS IV</span>
+          </button>
+
+          <button class="bigBtn emission-btn fade-slide fade-delay-2" onclick="handleEmissionSelect('BS-VI')"
+            aria-label="Select Ashok Leyland BS VI">
+            <span class="emission-btn-icon" aria-hidden="true">🚛</span>
+            <span class="emission-btn-label" data-i18n="model_ashok_leyland_bs6">ASHOK LEYLAND — BS VI</span>
+          </button>
+
+          <button id="vecvLocked" class="bigBtn emission-btn fade-slide fade-delay-3" disabled aria-disabled="true"
+            aria-label="VECV temporarily unavailable" title="VECV is temporarily unavailable">
+            <span class="emission-btn-icon" aria-hidden="true">🚛</span>
+            <span class="emission-btn-label">VECV</span>
+          </button>
+
+          <button class="bigBtn emission-btn fade-slide fade-delay-4" style="display:none" onclick="handleEmissionSelect('VECV-6019')"
+            aria-label="Select VECV 6019">
+            <span class="emission-btn-icon" aria-hidden="true">🚛</span>
+            <span class="emission-btn-label">VECV — 6019</span>
+          </button>
+
+          <button class="bigBtn emission-btn fade-slide fade-delay-5" onclick="handleEmissionSelect('TML')"
+            aria-label="Select TML 1822">
+            <span class="emission-btn-icon" aria-hidden="true">🚛</span>
+            <span class="emission-btn-label">TML — 1822</span>
+          </button>
+          <button class="bigBtn emission-btn fade-slide fade-delay-6" style="display:none" onclick="handleEmissionSelect('TML-1622')" aria-label="Select TML 1622">
+            <span class="emission-btn-icon" aria-hidden="true">🚛</span>
+            <span class="emission-btn-label">TML — 1622</span>
+          </button>
+        </div>
+        <div id="vehicleModelGroups" style="display:none; margin-top:16px;">
+          <div id="vecvModelGroup" class="grid" style="display:none;">
+            <button class="bigBtn emission-btn" onclick="handleEmissionSelect('VECV-6016')" aria-label="Select VECV 6016"><span class="emission-btn-label">VECV — 6016</span></button>
+            <button class="bigBtn emission-btn" onclick="handleEmissionSelect('VECV-6019')" aria-label="Select VECV 6019"><span class="emission-btn-label">VECV — 6019</span></button>
+          </div>
+          <div id="tmlModelGroup" class="grid" style="display:none;">
+            <button class="bigBtn emission-btn" onclick="selectTmlVehicleModel('TML 1822')" aria-label="Select TML 1822"><span class="emission-btn-label">TML — 1822</span></button>
+            <button class="bigBtn emission-btn" onclick="selectTmlVehicleModel('TML 1622')" aria-label="Select TML 1622"><span class="emission-btn-label">TML — 1622</span></button>
+          </div>
+        </div>
+
+        
+        <small class="muted" data-i18n="platform_hint">Choose the platform to load the correct checks.</small>
+      </div>
+    </section>
+
+    <!-- =================== Complaint Selection =================== -->
+    <section class="card fade-slide" id="complaintCard" style="display:none">
+      <div class="card-h">
+        <div class="title" data-i18n="complaint_title">Select Complaint</div>
+        <span class="tag" data-i18n="tag_start">Start</span>
+      </div>
+
+      <div class="card-b">
+        <p class="muted" data-i18n="complaint_hint">What is the problem observed in the vehicle?</p>
+
+        <div
+          style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:12px;">
+          <!-- DESIGN-003 FIX: Reordered to Not Working first (most common), then Quick Triage, then Intermittent -->
+          <div class="complaint-card" tabindex="0" role="button" aria-label="Not Working: Retarder not operating at all"
+            onclick="handleComplaintSelect('Not Working')"
+            onkeydown="if(event.key==='Enter'||event.key===' '){handleComplaintSelect('Not Working')}"
+            style="border-top:4px solid #EF4444;">
+            <h4 class="complaint-title"><span class="emoji">❌</span> <span data-i18n="c_not_working_title">NOT
+                WORKING</span></h4>
+            <p data-i18n="c_not_working_sub" style="font-size:13px;">Retarder not operating at all</p>
+          </div>
+
+
+
+          <div class="complaint-card" tabindex="0" role="button"
+            aria-label="Intermittent: Works occasionally, fails occasionally"
+            onclick="handleComplaintSelect('Intermittent')"
+            onkeydown="if(event.key==='Enter'||event.key===' '){handleComplaintSelect('Intermittent')}"
+            style="border-top:4px solid #3B82F6;">
+            <h4 class="complaint-title"><span class="emoji">🔁</span> <span
+                data-i18n="c_intermittent_title">INTERMITTENT</span></h4>
+            <p data-i18n="c_intermittent_sub" style="font-size:13px;">Works sometimes, fails sometimes</p>
+          </div>
+        </div>
+
+        <small class="muted" data-i18n="complaint_helps">This helps load the correct electrical checks.</small>
+      </div>
+    </section>
+
+    
+
+
+    <!-- =================== Registration =================== -->
+    <section class="card form-section" id="regCard" style="display:none" aria-labelledby="regCardTitle">
+      <div class="card-h">
+        <div class="form-section-title title" id="regCardTitle" data-i18n="reg_details">Registration Details</div>
+        <span class="tag" data-i18n="step_tag_2">Step 2</span>
+      </div>
+      <div class="card-b">
+        <!-- Technician Section -->
+        <div class="form-section" aria-labelledby="techSectionTitle">
+          <div class="form-section-title" id="techSectionTitle" data-i18n="tech_details">Technician Details</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="techName"><span data-i18n="full_name">Full Name</span> <span
+                  aria-hidden="true">*</span></label>
+              <input id="techName" name="techName" data-i18n-placeholder="full_name_placeholder" required
+                aria-required="true" autocomplete="name">
+              <div class="validation-message" id="val-techName"></div>
+            </div>
+            <div class="form-group">
+              <label for="techPhone"><span data-i18n="mobile_no">Mobile Number</span> <span
+                  aria-hidden="true">*</span></label>
+              <input id="techPhone" name="techPhone" data-i18n-placeholder="mobile_no_placeholder" inputmode="tel"
+                required aria-required="true" autocomplete="tel">
+              <div class="validation-message" id="val-techPhone"></div>
+            </div>
+            <div class="form-group">
+              <label for="dealerName"><span data-i18n="dealer_box">Dealer / Workshop</span> <span
+                  aria-hidden="true">*</span></label>
+              <input id="dealerName" name="dealerName" data-i18n-placeholder="dealer_box_placeholder" required
+                aria-required="true" autocomplete="organization">
+              <div class="validation-message" id="val-dealerName"></div>
+            </div>
+            <div class="form-group">
+              <label for="techType"><span data-i18n="tech_type">Technician Type</span> <span
+                  aria-hidden="true">*</span></label>
+              <select id="techType" name="techType" required aria-required="true">
+                <option value="" data-i18n="select_opt">Select</option>
+                <option value="Authorized Dealer" data-i18n="tech_type_auth">Authorized Dealer</option>
+                <option value="Fleet Workshop" data-i18n="tech_type_fleet">Fleet Workshop</option>
+                <option value="Roadside Assistance" data-i18n="tech_type_rsa">Roadside Assistance</option>
+              </select>
+              <div class="validation-message" id="val-techType"></div>
+            </div>
+            <div class="form-group">
+              <label for="city"><span data-i18n="city">City</span> <span aria-hidden="true">*</span></label>
+              <input id="city" name="city" data-i18n-placeholder="city_placeholder" placeholder="City" required
+                aria-required="true" autocomplete="address-level2">
+              <div id="vpnWarning"
+                style="display:none; color: #ef4444; font-size: 11px; margin-top: 4px; font-weight: 700;">
+                ⚠️ VPN Active? Location detected outside India. Please verify.
+              </div>
+              <div class="validation-message" id="val-city"></div>
+            </div>
+            <div class="form-group">
+              <label for="state"><span data-i18n="state">State</span> <span aria-hidden="true">*</span></label>
+              <select id="state" name="state" required aria-required="true" autocomplete="address-level1">
+                <option value="" data-i18n="select_state">Select state</option>
+                <option value="Andhra Pradesh" data-i18n="state_andhra_pradesh">Andhra Pradesh</option>
+                <option value="Arunachal Pradesh" data-i18n="state_arunachal_pradesh">Arunachal Pradesh</option>
+                <option value="Assam" data-i18n="state_assam">Assam</option>
+                <option value="Bihar" data-i18n="state_bihar">Bihar</option>
+                <option value="Chhattisgarh" data-i18n="state_chhattisgarh">Chhattisgarh</option>
+                <option value="Goa" data-i18n="state_goa">Goa</option>
+                <option value="Gujarat" data-i18n="state_gujarat">Gujarat</option>
+                <option value="Haryana" data-i18n="state_haryana">Haryana</option>
+                <option value="Himachal Pradesh" data-i18n="state_himachal_pradesh">Himachal Pradesh</option>
+                <option value="Jharkhand" data-i18n="state_jharkhand">Jharkhand</option>
+                <option value="Karnataka" data-i18n="state_karnataka">Karnataka</option>
+                <option value="Kerala" data-i18n="state_kerala">Kerala</option>
+                <option value="Madhya Pradesh" data-i18n="state_madhya_pradesh">Madhya Pradesh</option>
+                <option value="Maharashtra" data-i18n="state_maharashtra">Maharashtra</option>
+                <option value="Manipur" data-i18n="state_manipur">Manipur</option>
+                <option value="Meghalaya" data-i18n="state_meghalaya">Meghalaya</option>
+                <option value="Mizoram" data-i18n="state_mizoram">Mizoram</option>
+                <option value="Nagaland" data-i18n="state_nagaland">Nagaland</option>
+                <option value="Odisha" data-i18n="state_odisha">Odisha</option>
+                <option value="Punjab" data-i18n="state_punjab">Punjab</option>
+                <option value="Rajasthan" data-i18n="state_rajasthan">Rajasthan</option>
+                <option value="Sikkim" data-i18n="state_sikkim">Sikkim</option>
+                <option value="Tamil Nadu" data-i18n="state_tamil_nadu">Tamil Nadu</option>
+                <option value="Telangana" data-i18n="state_telangana">Telangana</option>
+                <option value="Tripura" data-i18n="state_tripura">Tripura</option>
+                <option value="Uttar Pradesh" data-i18n="state_uttar_pradesh">Uttar Pradesh</option>
+                <option value="Uttarakhand" data-i18n="state_uttarakhand">Uttarakhand</option>
+                <option value="West Bengal" data-i18n="state_west_bengal">West Bengal</option>
+                <option value="Andaman and Nicobar Islands" data-i18n="state_andaman_nicobar">Andaman and Nicobar Islands</option>
+                <option value="Chandigarh" data-i18n="state_chandigarh">Chandigarh</option>
+                <option value="Dadra and Nagar Haveli and Daman and Diu" data-i18n="state_dadra_daman_diu">Dadra and Nagar Haveli and Daman and Diu</option>
+                <option value="Delhi" data-i18n="state_delhi">Delhi</option>
+                <option value="Jammu and Kashmir" data-i18n="state_jammu_kashmir">Jammu and Kashmir</option>
+                <option value="Ladakh" data-i18n="state_ladakh">Ladakh</option>
+                <option value="Lakshadweep" data-i18n="state_lakshadweep">Lakshadweep</option>
+                <option value="Puducherry" data-i18n="state_puducherry">Puducherry</option>
+              </select>
+              <div class="validation-message" id="val-state"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Location (auto-detected) -->
+        <div>
+          <input type="text" id="liveLocation" hidden>
+          <small id="locStatus" style="display:none"></small>
+        </div>
+
+        <!-- Vehicle Section -->
+        <div class="form-section" aria-labelledby="vehSectionTitle">
+          <div class="form-section-title" id="vehSectionTitle" data-i18n="veh_details">Vehicle Details</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="vehReg"><span data-i18n="reg_no">Registration No</span> <span
+                  aria-hidden="true">*</span></label>
+              <input id="vehReg" name="vehReg" placeholder="TN01AB1234" required aria-required="true" autocomplete="off"
+                oninput="validateVehReg(this)" maxlength="13">
+              <small id="regHint" style="color: #6B7280; font-size: 11px; display: block; margin-top: 4px;"
+                data-i18n="hint_reg_format">Format: TN01AB1234 or TN014467</small>
+              <div class="validation-message" id="val-vehReg"></div>
+            </div>
+            <div class="form-group">
+              <label for="odometer"><span data-i18n="odometer">Odometer (km)</span> <span
+                  aria-hidden="true">*</span></label>
+              <input type="number" id="odometer" name="odometer" data-i18n-placeholder="odometer_placeholder"
+                placeholder="e.g. 125430" required aria-required="true" min="0" autocomplete="off" inputmode="numeric"
+                pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+              <div class="validation-message" id="val-odometer"></div>
+            </div>
+            <div class="form-group">
+              <label for="chassisNo"><span data-i18n="chassis_no">Chassis No (last 6 digits)</span></label>
+              <input type="text" id="chassisNo" name="chassisNo" data-i18n-placeholder="chassis_placeholder"
+                placeholder="e.g. A3B421" autocomplete="off">
+              <small class="muted" data-i18n="hint_chassis_optional">Optional — for better tracking</small>
+              <div class="validation-message" id="val-chassisNo"></div>
+            </div>
+            <div class="form-group">
+              <label for="vehModel"><span data-i18n="veh_model">Vehicle Model</span> <span
+                  aria-hidden="true">*</span></label>
+              <select id="vehModel" name="vehModel" required aria-required="true">
+                <option value="" data-i18n="select_opt">Select Bus</option>
+                <option value="12M BS‑IV (Retarder)" data-i18n="model_12m">12M Bus</option>
+                <option value="Viking BS‑IV (Retarder)" data-i18n="model_viking">Viking Bus</option>
+                <option value="Other BS‑IV Retarder Bus" data-i18n="model_other">Other BS‑IV Retarder Bus</option>
+              </select>
+              <small class="muted" data-i18n="hint_model_support">Only BS‑IV retarder buses supported</small>
+              <div class="validation-message" id="val-vehModel"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px; gap:12px;">
+          <button class="btn" id="goPrecheck" data-i18n="btn_tools">Proceed to Tools Required</button>
+          <button class="btn outline" id="backToComplaint" onclick="handleBackToComplaint()"
+            data-i18n="back">Back</button>
+        </div>
+      </div>
+    </section>
+
+    
+
+    <!-- =================== Tools Required =================== -->
+    <section class="card form-section" id="preCard" style="display:none" aria-labelledby="toolsRequiredTitle">
+      <div class="card-h">
+        <div class="form-section-title title" id="toolsRequiredTitle" data-i18n="tools_title">Tools Required</div>
+        <span class="tag" id="emissionTag">AL · BS‑VI</span>
+      </div>
+      <div class="card-b form-section" aria-labelledby="toolsListTitle">
+        <div id="historicalAlert" style="display:none; padding:16px; border-left:4px solid #F59E0B; background:#FFFBEB; border-radius:8px; margin-bottom:16px; color:#92400E; font-size:14px; box-shadow:0 2px 4px rgba(245,158,11,0.1);">
+          <strong>💡 Predictive Alert:</strong> This vehicle had an issue with the <span id="historicalPart" style="font-weight:800; background:#FDE68A; padding:2px 6px; border-radius:4px;"></span> on <span id="historicalDate"></span>. You may want to check this component first.
+        </div>
+        <div class="notice" role="status" data-i18n="tool_notice">
+          Before starting the diagnostic, keep this tool ready.
+        </div>
+        <div class="form-section" id="toolsListTitle">
+          <div class="precheck-item" role="checkbox" aria-checked="false" tabindex="0">
+            <input type="checkbox" id="tool_multimeter" class="animated-checkbox" style="margin-right:10px;"
+              onclick="toggleToolCheck('tool_multimeter')" onkeydown="event.stopPropagation();">
+            <label for="tool_multimeter" style="font-weight:600; font-size:1.08em; cursor:pointer;"
+              onclick="toggleToolCheck('tool_multimeter')" data-i18n="tool_multimeter">Digital Multimeter (DC voltage
+              &amp; continuity
+              check)</label>
+          </div>
+          <div class="precheck-item" role="checkbox" aria-checked="false" tabindex="0">
+            <input type="checkbox" id="tool_clamp_meter" class="animated-checkbox" style="margin-right:10px;"
+              onclick="toggleToolCheck('tool_clamp_meter')" onkeydown="event.stopPropagation();">
+            <label for="tool_clamp_meter" style="font-weight:600; font-size:1.08em; cursor:pointer;"
+              onclick="toggleToolCheck('tool_clamp_meter')" data-i18n="tool_clamp_meter">Clamp Meter (AC/DC current
+              measurement)</label>
+          </div>
+        </div>
+        <p class="muted" style="margin-top:18px;" data-i18n="tick_to_continue">Either tool is sufficient to continue.
+        </p>
+        <div class="row" style="margin-top:18px; gap:12px;">
+          <button class="btn bigBtn" id="startDiag" style="font-size:1.1em;" data-i18n="btn_start_pre">Start
+            Pre-Diagnostic Instructions</button>
+          <button class="btn outline" id="backToReg" onclick="handleBackToReg()" data-i18n="back">Back</button>
+        </div>
+      </div>
+    </section>
+    
+
+    
+
+    <!-- =================== Pre-Diagnostic Instructions =================== -->
+    <section class="card form-section" id="preDiagCard" style="display:none" aria-labelledby="preDiagTitle">
+      <div class="card-h">
+        <div class="form-section-title title" id="preDiagTitle" data-i18n="pre_diag_title">Pre-Diagnostic Instructions
+        </div>
+        <span class="tag" id="preDiagTag" aria-label="Model and emission standard">AL · BS‑VI</span>
+      </div>
+      <div class="card-b">
+        <!-- STEP 1 -->
+        <div class="form-section" aria-labelledby="step1Title">
+          <div class="form-section-title" id="step1Title" data-i18n="pd_step1_title">Step 1 — Working Condition</div>
+          <div class="visual-box" aria-label="Retarder state visual">
+            <!-- Scenario A: Stopped -->
+            <div class="visual inactive"
+              style="background:#f1f5f9; border-radius:12px; padding:20px; border:2px solid #e2e8f0;">
+              <div style="font-size:2em; margin-bottom:10px;">🛑</div>
+              <div class="state-text">
+                <strong style="color:#ef4444; font-size:1.1em;" data-i18n="pd_stopped_title">STOPPED (0
+                  KMPH)</strong><br>
+                <small style="color:#64748b; font-weight:600;" data-i18n="pd_ret_sw_on">Retarder switch is ON</small>
+                <div
+                  style="margin-top:10px; background:#fff; padding:6px; border-radius:6px; border:1px dashed #cbd5e1; color:#b91c1c;">
+                  <b data-i18n="pd_ecu_0v">ECU Output: 0 Volts</b><br>
+                  <span style="font-size:12px;" data-i18n="pd_no_power">(No power to coils)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="arrow" style="color:#94a3b8;">➡</div>
+
+            <!-- Scenario B: Moving -->
+            <div class="visual active"
+              style="background:#f0fdf4; border-radius:12px; padding:20px; border:2px solid #bbf7d0;">
+              <div style="font-size:2em; margin-bottom:10px;">🚛</div>
+              <div class="state-text">
+                <strong style="color:#16a34a; font-size:1.1em;" data-i18n="pd_moving_title">MOVING (≥ 5
+                  KMPH)</strong><br>
+                <small style="color:#15803d; font-weight:600;" data-i18n="pd_ret_sw_on">Retarder switch is ON</small>
+                <div
+                  style="margin-top:10px; background:#fff; padding:6px; border-radius:6px; border:1px solid #86efac; color:#166534;">
+                  <b data-i18n="pd_ecu_24v">ECU Output: +24 Volts</b><br>
+                  <span style="font-size:12px;" data-i18n="pd_induction_active">(Full Induction Active)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style="background:#fff7ed; padding:15px; border-radius:10px; border-left:4px solid #f97316; margin-top:10px;">
+            <p style="margin:0; font-size:15px; line-height:1.5; color:#9a3412;" data-i18n="pd_elec_note">
+              ⚡ <b>Electrician's Note:</b> The Retarder ECU requires a <b>Speed Sensor Signal</b> before it can trigger
+              the Magnetic Field. If the wheels are not rotating, you will not find any voltage at the coils.
+            </p>
+          </div>
+        </div>
+        <div class="panel simulation-panel" id="simPanel" style="margin-top: 24px;">
+          <div class="form-section-title" data-i18n="pd_sim_title">Retarder Driver Simulation</div>
+          <div class="sim-instruction" id="simInstruction" data-i18n="pd_sim_instr">Use the simulator below to visualize
+            retarder logic.</div>
+          <div id="simContent">
+            <div class="sim-group">
+              <!-- BUS SIMULATION VIEWPORT -->
+              <div class="bus-sim-viewport">
+                <div class="scrolling-skyline js-city-layer"></div>
+                <div class="scrolling-road js-road-layer">
+                  <div class="road-line"></div>
+                </div>
+                <div class="bus-wrapper js-bus-element">
+                  <div class="bus-body">
+                    <div class="bus-window-strip">
+                      <div class="bus-win"></div>
+                      <div class="bus-win"></div>
+                      <div class="bus-win"></div>
+                    </div>
+                    <div class="bus-wheel bw-f js-bus-wheel"></div>
+                    <div class="bus-wheel bw-r js-bus-wheel"></div>
+                  </div>
+                </div>
+                <div class="js-obstacle-layer"></div>
+              </div>
+              <div
+                style="margin-top:-10px; margin-bottom:15px; font-weight:700; color:#4B5563; font-size:12px; letter-spacing:1px; text-transform:uppercase;"
+                data-i18n="pd_sim_viewport_label">
+                Retarder Drive Simulation</div>
+              <!-- STATUS & SPEED -->
+              <div class="sim-status-speed">
+                <div class="retarder off js-retarder-status"
+                  style="margin:0; min-width:140px; display:flex; align-items:center; justify-content:center; gap:8px;">
+                  <img src="asset/optimized/retarder-icon.png" class="js-retarder-icon" alt="Retarder Icon" decoding="async">
+                  <span class="js-retarder-text" data-i18n="pd_sim_ret_off">RETARDER OFF</span>
+                </div>
+                <div class="speed-box"
+                  style="background: #111827; padding: 12px; border-radius: 12px; min-width: 90px; text-align: center; border: 1px solid #374151;">
+                  <div style="font-size:12px; font-weight:700; color:#9CA3AF; letter-spacing:1px; margin-bottom:4px;"
+                    data-i18n="pd_sim_speed_label">
+                    SPEED</div>
+                  <div class="speed js-speed-display"
+                    style="font-size:32px; font-weight:800; color:#fff; line-height:1;">0</div>
+                  <div style="font-size:14px; color:#6B7280; font-weight:600;" data-i18n="pd_sim_kmph">kmph</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ENHANCED PEDALS INTERFACE -->
+            <div class="pedals">
+              <div class="pedal brake js-brake-pedal" onpointerdown="brake(true)" onpointerup="brake(false)"
+                onpointercancel="brake(false)" onpointerleave="brake(false)" onmousedown="brake(true)"
+                onmouseup="brake(false)" onmouseleave="brake(false)" ontouchstart="event.preventDefault(); brake(true)"
+                ontouchend="brake(false)">
+                <div class="pedal-label"
+                  style="text-align:center; font-weight:700; font-size:12px; color:#4B5563; margin-bottom:8px;"
+                  data-i18n="pd_sim_brake_label">BRAKE
+                </div>
+                <div class="pedal-box"></div>
+                <div style="text-align:center; font-size:12px; color:#9CA3AF; margin-top:8px;"
+                  data-i18n="pd_sim_hold_brake">Hold to Brake</div>
+              </div>
+              <div class="pedal accel js-acc-pedal" onpointerdown="accelerate(true)" onpointerup="accelerate(false)"
+                onpointercancel="accelerate(false)" onpointerleave="accelerate(false)" onmousedown="accelerate(true)"
+                onmouseup="accelerate(false)" onmouseleave="accelerate(false)"
+                ontouchstart="event.preventDefault(); accelerate(true)" ontouchend="accelerate(false)">
+                <div class="pedal-label"
+                  style="text-align:center; font-weight:700; font-size:12px; color:#4B5563; margin-bottom:8px;"
+                  data-i18n="pd_sim_accel_label">
+                  ACCELERATOR</div>
+                <div class="pedal-box"></div>
+                <div style="text-align:center; font-size:12px; color:#9CA3AF; margin-top:8px;"
+                  data-i18n="pd_sim_hold_accel">Hold to Accel</div>
+              </div>
+            </div>
+            <div class="info">
+              <b data-i18n="pd_sim_logic_head">Logic:</b><br>
+              <span data-i18n="pd_sim_logic_on">Retarder ON = Speed ≥ 5 kmph + Brake pressed</span><br>
+              <span data-i18n="pd_sim_logic_off">Retarder OFF = Speed < 5 kmph OR Brake released</span><br>
+            </div>
+          </div>
+        </div>
+        <audio id="retarderSound" preload="none">
+      <source src="asset/music/machine-start.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="accSound" preload="none">
+      <source src="asset/music/car-accelerate.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="brakeSound" preload="none">
+      <source src="asset/music/car-brake.mp3" type="audio/mpeg">
+        </audio>
+      </div>
+      <!-- STEP 2 -->
+      <div class="form-section" aria-labelledby="step2Title">
+        <div class="form-section-title" id="step2Title" data-i18n="pd_step2_title">Step 2 — Instruction</div>
+        <div class="instruction">
+          <b data-i18n="pd_ensure_speed">Ensure vehicle speed ≥ 5 kmph for retarder testing</b>
+          <p data-i18n="pd_methods">If vehicle is stationary, use any <b>ONE</b> of the following methods:</p>
+          <div class="method-list">
+            <div class="method-item">
+              <div class="method-num">1</div>
+              <div class="m-body">
+                <span class="m-title" data-i18n="pd_method1_title">Remove Propeller Shaft</span>
+                <span class="m-desc" data-i18n="pd_method1_desc">As per workshop safety procedure</span>
+              </div>
+            </div>
+            <div class="method-item">
+              <div class="method-num">2</div>
+              <div class="m-body">
+                <span class="m-title" data-i18n="pd_method2_title">Jack up the Driven Wheels 🛠️</span>
+                <span class="m-desc" data-i18n="pd_method2_desc">Rotate wheels to simulate vehicle speed</span>
+                <div class="micro-warn"
+                  style="margin-top:8px; background:#fef3c7; color:#92400e; padding:6px 10px; border-radius:6px; font-size:12px; border:1px solid #fde68a;"
+                  data-i18n="pd_jack_warn">
+                  ⚠️ <b>Warning:</b> Use jack stands; do not rely on hydraulic jack alone.
+                </div>
+              </div>
+            </div>
+          </div>
+          <p style="margin-top:16px;"><b data-i18n="pd_proceed_after">Only after this, proceed with retarder
+              diagnosis.</b></p>
+        </div>
+      </div>
+      <!-- STEP 3 -->
+      <div class="form-section" aria-labelledby="step3Title">
+        <div class="form-section-title" id="step3Title" data-i18n="pd_step3_title">Step 3 — Safety Note</div>
+        <div class="safety" role="region" aria-label="Safety checklist">
+          <div class="safety-head" data-i18n="pd_safety_head">🛡️ <b>Safety Confirmation</b></div>
+          <div class="checklist">
+            <label class="check">
+              <input type="checkbox" class="precheck animated-checkbox" data-required="true"
+                onclick="toggleToolCheck(this.id)" id="safety1">
+              <span data-i18n="pd_safety1">Use wheel chocks</span>
+            </label>
+            <label class="check">
+              <input type="checkbox" class="precheck animated-checkbox" data-required="true"
+                onclick="toggleToolCheck(this.id)" id="safety2">
+              <span data-i18n="pd_safety2">Standard jack-up / propeller shaft removal</span>
+            </label>
+            <label class="check">
+              <input type="checkbox" class="precheck animated-checkbox" data-required="true"
+                onclick="toggleToolCheck(this.id)" id="safety3">
+              <span data-i18n="pd_safety3">Ensure vehicle is stable before testing</span>
+            </label>
+          </div>
+          <div class="safety-notes-box">
+            <ul>
+              <li data-i18n="pd_safety4">Keep personnel clear of rotating wheels/shafts</li>
+              <li data-i18n="pd_safety5">Remove tools and rags from underbody area</li>
+            </ul>
+          </div>
+        </div>
+        <button class="next-btn bigBtn" id="proceedBtn" onclick="goToECUTest()" disabled aria-disabled="true"
+          style="margin-top:24px; font-size:1.1em;" data-i18n="proceed_diag">Proceed to Diagnosis</button>
+      </div>
+      </div>
+    </section>
+    
+
+    <!-- #switchPanel removed: display:none block with missing DOM dependencies -->
+
+    <!-- Action Instruction Card - Shows current test and user instructions -->
+    <div class="action-instruction-card" id="actionCard">
+      <h4 data-i18n="current_test_progress_title">🔍 Current Test In Progress</h4>
+      <div class="current-test" id="currentTestName">Retarder Connection (C1)</div>
+      <ul class="instruction-list" id="instructionList">
+        <li>Ensure wiring connector is fully inserted</li>
+        <li>Keep ignition switch OFF (position 0)</li>
+        <li>Check for any loose connections</li>
+      </ul>
+      <div class="time-estimate">
+        <span data-i18n="estimated_time_label">⏱️ Estimated time:</span> <span class="time-estimate-value"
+          id="timeEstimate">15 seconds</span>
+      </div>
+    </div>
+
+    <!-- Previous Test Results Section -->
+    <div class="previous-results-section" id="previousResultsSection" style="display: none;">
+      <div class="previous-results-toggle" id="previousResultsToggle" data-i18n="prev_results_title">
+        📋 Previous Test Results
+      </div>
+      <div class="previous-results-content" id="previousResultsContent">
+        <div id="resultsContainer">
+          <!-- Results will be populated here dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- =================== Guided Flow (Compulsory Checks) =================== -->
+    <section class="card" id="guidedFlowCard" style="display:none" aria-label="Guided compulsory checks">
+      <div class="card-h">
+        <div class="title" data-i18n="gf_steps_title">Guided Steps</div>
+        <span class="tag" id="gfStepTag"><span data-i18n="tag_step">Step</span> 1 <span data-i18n="of">of</span>
+          6</span>
+      </div>
+
+      <div class="card-b">
+
+        <!-- ===== Quick Check: Start with (3) Retarder Switch & (6) Retarder Unit ===== -->
+        <div id="gfQuick" class="quick-wrap" style="display:none" aria-label="Quick check with photo confirmation">
+          <div class="notice" data-i18n="quick_top_notice">Start with the most impactful checks for faster resolution:
+            <b>(3) Retarder Switch</b> and
+            <b>(6) Retarder Unit</b>.
+          </div>
+          <div class="quick-grid">
+            <!-- (1) Retarder Connection -->
+            <div class="quick-card" id="qc-conn" data-part="conn"
+              aria-label="Retarder connection / Customer mating connector">
+              <img class="quick-photo" loading="lazy" src="asset/optimized/customermating.jpg"
+                alt="Customer mating connector photo">
+              <div class="quick-hdr">
+                <span data-i18n="label_conn">1. Retarder Conn.</span>
+                <span class="quick-tag" data-i18n="tag_dashboard">Dashboard</span>
+              </div>
+              <small class="muted" data-i18n="quick_hover_hint">Hover to highlight the node in the wiring diagram. Click
+                “View location” to
+                confirm.</small>
+              <div class="quick-cta">
+                <button class="btn-sm" data-action="view" data-i18n="view_location_btn">View location</button>
+                <button class="btn-sm" data-action="pin" data-i18n="pin_highlight_btn">Pin/Unpin highlight</button>
+              </div>
+              <div class="quick-yn">
+                <button class="yes" data-action="yes" data-i18n="yes_working">YES — Working</button>
+                <button class="no" data-action="no" data-i18n="no_not_working">NO — Not working</button>
+              </div>
+            </div>
+
+            <!-- (3) Retarder Switch -->
+            <div class="quick-card" id="qc-switch" data-part="switch" aria-label="Retarder switch location">
+              <img class="quick-photo" loading="lazy" src="asset/optimized/retarderswitch.jpg"
+                alt="Retarder switch location photo">
+              <div class="quick-hdr">
+                <span data-i18n="label_switch">3. Retarder Switch</span>
+                <span class="quick-tag" data-i18n="tag_dashboard">Dashboard</span>
+              </div>
+              <small class="muted" data-i18n="quick_hover_hint">Hover to highlight the node in the wiring diagram. Click
+                “View location” to
+                confirm.</small>
+              <div class="quick-cta">
+                <button class="btn-sm" data-action="view" data-i18n="view_location_btn">View location</button>
+                <button class="btn-sm" data-action="pin" data-i18n="pin_highlight_btn">Pin/Unpin highlight</button>
+              </div>
+              <div class="quick-yn">
+                <button class="yes" data-action="yes" data-i18n="yes_working">YES — Working</button>
+                <button class="no" data-action="no" data-i18n="no_not_working">NO — Not working</button>
+              </div>
+            </div>
+
+            <!-- (6) Retarder Unit -->
+            <div class="quick-card" id="qc-retarder" data-part="retarder" aria-label="Retarder unit location">
+              <img class="quick-photo" loading="lazy" src="asset/optimized/retarderassy.jpg" alt="Retarder unit location photo">
+              <div class="quick-hdr">
+                <span data-i18n="label_retarder">6. Retarder Unit</span>
+                <span class="quick-tag" data-i18n="tag_underbody">Underbody</span>
+              </div>
+              <small class="muted" data-i18n="quick_hover_hint">Hover to highlight the node in the wiring diagram. Click
+                “View location” to
+                confirm.</small>
+              <div class="quick-cta">
+                <button class="btn-sm" data-action="view" data-i18n="view_location_btn">View location</button>
+                <button class="btn-sm" data-action="pin" data-i18n="pin_highlight_btn">Pin/Unpin highlight</button>
+              </div>
+              <div class="quick-yn">
+                <button class="yes" data-action="yes" data-i18n="yes_working">YES — Working</button>
+                <button class="no" data-action="no" data-i18n="no_not_working">NO — Not working</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="row" style="margin-top:10px;">
+            <button id="quickContinue" class="btn" disabled data-i18n="continue_guided_btn">Continue to Guided
+              Steps</button>
+          </div>
+        </div>
+
+
+        <!-- Test Timing Information -->
+        <div class="test-timing-info" id="diagnosticHeader"
+          style="display: flex; gap: 20px; align-items: center; padding: 14px; background: linear-gradient(135deg, #f0f9ff, #dbeafe); border-left: 4px solid #0b5daa; border-radius: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+          <div class="timing-item" style="display: flex; flex-direction: column; gap: 4px;">
+            <div class="timing-label"
+              style="font-size: 12px; color: #0f172a; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+              <span data-i18n="elapsed_label">⏱️ Elapsed</span>
+            </div>
+            <div class="timing-value" id="elapsedTime" style="font-size: 18px; font-weight: 800; color: #0b5daa;">0:00
+            </div>
+          </div>
+          <div class="timing-divider" style="width: 1px; height: 40px; background: rgba(11, 93, 170, 0.2);"></div>
+          <div class="timing-item" style="display: flex; flex-direction: column; gap: 4px;">
+            <div class="timing-label"
+              style="font-size: 12px; color: #0f172a; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+              <span data-i18n="progress_label">📊 Progress</span>
+            </div>
+            <div class="timing-value" id="progressPercent" style="font-size: 18px; font-weight: 800; color: #0b5daa;">0%
+            </div>
+          </div>
+          <div class="timing-divider" style="width: 1px; height: 40px; background: rgba(11, 93, 170, 0.2);"></div>
+          <div class="timing-item" style="display: flex; flex-direction: column; gap: 4px;">
+            <div class="timing-label"
+              style="font-size: 12px; color: #0f172a; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+              🧭 <span data-i18n="tag_step">Step</span>
+            </div>
+            <div class="timing-value" id="stepCountDisplay" style="font-size: 18px; font-weight: 800; color: #0b5daa;">1
+              / 6
+            </div>
+          </div>
+        </div>
+
+        <!-- Wiring Diagram (6 nodes) -->
+        <div id="wireFlow" class="wireflow" aria-label="Signal path">
+          <div class="wf-stage" role="list">
+            <!-- 1) Retarder Connection / Customer Mating Connector -->
+            <div class="wf-node-wrap" role="listitem">
+              <div class="wf-node pending" id="wf-conn" aria-label="Retarder Connection / Customer mating connector"
+                title="Retarder Connection"></div>
+              <div class="wf-label" data-i18n="label_conn">Retarder Conn.</div>
+              <div class="wf-status pending" id="wf-conn-status">Not tested</div>
+            </div>
+
+            <!-- Link: 1 → 2 -->
+            <div class="wf-link pending" id="wf-link-0" aria-hidden="true"></div>
+
+            <!-- 2) ECU Speed Box -->
+            <div class="wf-node-wrap" role="listitem">
+              <div class="wf-node pending" id="wf-speed" aria-label="ECU Speed Box" title="ECU Speed Box"></div>
+              <div class="wf-label" data-i18n="label_speed">ECU Speed Box</div>
+              <div class="wf-status pending" id="wf-speed-status">Not tested</div>
+            </div>
+
+            <!-- Link: 2 → 3 -->
+            <div class="wf-link pending" id="wf-link-0b" aria-hidden="true"></div>
+
+            <!-- 3) Retarder Switch -->
+            <div class="wf-node-wrap" role="listitem">
+              <div class="wf-node pending" id="wf-switch" aria-label="Retarder Switch" title="Retarder Switch"></div>
+              <div class="wf-label" data-i18n="label_switch">Retarder Switch</div>
+              <div class="wf-status pending" id="wf-switch-status">Not tested</div>
+            </div>
+
+            <!-- Link: 3 → 4 -->
+            <div class="wf-link pending" id="wf-link-1" aria-hidden="true"></div>
+
+            <!-- 4) Air Pressure Switch -->
+            <div class="wf-node-wrap" role="listitem">
+              <div class="wf-node pending" id="wf-aps" aria-label="Air Pressure Switch" title="Air Pressure Switch">
+              </div>
+              <div class="wf-label" data-i18n="label_aps">Air Pressure Switch</div>
+              <div class="wf-status pending" id="wf-aps-status">Not tested</div>
+            </div>
+
+            <!-- Link: 4 → 5 -->
+            <div class="wf-link pending" id="wf-link-2" aria-hidden="true"></div>
+
+            <!-- 5) Relay Box -->
+            <div class="wf-node-wrap" role="listitem">
+              <div class="wf-node pending" id="wf-relay" aria-label="Relay Box" title="Relay Box"></div>
+              <div class="wf-label" data-i18n="label_relay">Relay Box</div>
+              <div class="wf-status pending" id="wf-relay-status">Not tested</div>
+            </div>
+
+            <!-- Link: 5 → 6 -->
+            <div class="wf-link pending" id="wf-link-3" aria-hidden="true"></div>
+
+            <!-- 6) Retarder Unit -->
+            <div class="wf-node-wrap" role="listitem">
+              <div class="wf-node pending" id="wf-retarder" aria-label="Retarder Unit" title="Retarder Unit"></div>
+              <div class="wf-label" data-i18n="label_retarder">Retarder Unit</div>
+              <div class="wf-status pending" id="wf-retarder-status">Not tested</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STANDARD MODE: Step 1 — Customer Mating Connector (Yes/No Wizard) -->
+        <section id="standardModeTestSection" class="step-card-enhanced" style="display:none;margin:16px 0;">
+
+          <!-- Progress Bar -->
+          <div class="step-progress-container">
+            <div class="step-progress-bar">
+              <div id="stepProgressBarEnhanced" class="step-progress-fill-enhanced" style="width: 0%"></div>
+            </div>
+            <div class="step-counter"><span data-i18n="tag_step">Step</span> <span id="stepCurrentNo">1</span> <span
+                data-i18n="of">of</span> 6</div>
+          </div>
+
+          <!-- Header -->
+          <div class="step-header-enhanced">
+            <h2>Step 1 — Customer Mating Connector</h2>
+            <p class="step-subtitle">Test the main power and signal connections</p>
+            <div class="header-actions" style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+              <button id="stepBtnBack" class="header-action-btn" style="display:none">
+                <span>⬅️</span> <span data-i18n="back">Back</span>
+              </button>
+              <button id="saveDraftBtn" class="header-action-btn" type="button">💾 Save Draft</button>
+              <button id="resumeDraftBtn" class="header-action-btn" type="button" style="display:none">↩️ Resume Draft</button>
+              <span id="draftStatus" aria-live="polite" style="align-self:center; font-size:12px; opacity:.8"></span>
+            </div>
+          </div>
+
+          <!-- Badges Row -->
+          <div class="signal-row-header">
+            <span class="signal-row-label">📌 <span data-i18n="pin_signals_label">Pin Signals:</span></span>
+          </div>
+          <div class="step-badges-enhanced">
+            <div class="badge-item">
+              <span id="badge-green" class="step-badge-enhanced">🟢</span>
+              <span class="badge-label" data-i18n="green_label">Green +24V</span>
+            </div>
+            <div class="badge-item">
+              <span id="badge-black" class="step-badge-enhanced">⚫</span>
+              <span class="badge-label" data-i18n="black_label">Ground</span>
+            </div>
+            <div class="badge-item">
+              <span id="badge-yellow" class="step-badge-enhanced">🟡</span>
+              <span class="badge-label" data-i18n="yellow_label">Speed Signal</span>
+            </div>
+              <div class="badge-item">
+                <span id="badge-mb" class="step-badge-enhanced"
+                  style="background: linear-gradient(to bottom, #22c55e 0 35%, #ffffff 35% 65%, #22c55e 65% 100%); width: 24px; height: 24px; display: inline-block; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1);"></span>
+                <span class="badge-label" data-i18n="mb_indicator">Green/White MB Indicator</span>
+            </div>
+          </div>
+
+          <!-- Question Panel -->
+          <div class="step-qa-enhanced">
+            <div class="question-icon">❓</div>
+            <div id="stepQA" class="step-question-text">
+              <!-- Question text will be injected here -->
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="step-actions-enhanced">
+            <button id="stepBtnYes" class="step-btn-enhanced step-yes-enhanced"
+              aria-label="YES — condition is confirmed, measurement is within spec">
+              <span class="btn-icon">✅</span>
+              <span class="btn-text" data-i18n="yes_working">YES — Working</span>
+            </button>
+            <button id="stepBtnNo" class="step-btn-enhanced step-no-enhanced"
+              aria-label="NO — condition is NOT met, measurement is out of spec">
+              <span class="btn-icon">❌</span>
+              <span class="btn-text" data-i18n="no_not_working">NO — Not Working</span>
+            </button>
+          </div>
+
+          <!-- Result Panel -->
+          <div id="stepResult" class="step-result-enhanced" aria-live="polite"></div>
+
+          <!-- Info Note -->
+          <div class="step-note-enhanced">
+            <strong>💡 BSVI connector colors:</strong> Black = Negative, Yellow/White = Speed Signal, Green = Positive from ABS 3rd relay, Green/White = MB Indicator.
+          </div>
+        </section>
+
+      </div>
+    </section>
+
+    <!-- =================== Result / Report =================== -->
+    <section class="card" id="resultCard" style="display:none">
+      <div class="card-h">
+        <div class="title" data-i18n="diag_result_title">Diagnostic Result</div>
+        <span class="tag" data-i18n="report_tag">Report</span>
+      </div>
+      <div class="card-b">
+        <div class="printHeader" style="display:none;">
+          <h2>RETARDER IQ – Diagnostic Report</h2>
+          <small>Generated on: <span id="printDate"></span></small>
+        </div>
+        <div id="resultSummary"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="printBtn" data-i18n="report_print">Print / Save PDF</button>
+          <button class="btn outline" id="retryBtn" style="display:none; border-color: #f59e0b; color: #d97706; font-weight: 600; box-shadow: 0 2px 4px rgba(245, 158, 11, 0.1);">🔧 Resume / Retry</button>
+          <button class="btn outline" id="newBtn" data-i18n="new_diag">New Diagnostic</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  
+
+  <!-- ===== Photo Confirm Modal (shared) ===== -->
+  <div id="photoConfirmModal" class="confirm-modal hidden" role="dialog" aria-modal="true">
+    <div class="confirm-card">
+      <h3 id="confirmTitle" data-i18n="confirm_loc_title">Confirm part location</h3>
+      <img id="confirmImg" class="confirm-img" src="" alt="Part location large view">
+      <div class="confirm-actions">
+        <button class="btn cancel" id="confirmCancel" data-i18n="cancel_btn">Cancel</button>
+        <button class="btn ok" id="confirmOk" data-i18n="looks_correct_btn">Looks correct</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Location Help Modal (New) ===== -->
+  <div id="locationHelpModal" class="confirm-modal hidden" role="dialog" aria-modal="true" style="z-index: 9999;">
+    <div class="confirm-card" style="max-width: 500px;">
+      <h3 id="locHelpTitle" data-i18n="comp_loc_title" style="color: #ffffff;">Component Location</h3>
+      <div class="location-image-frame" style="margin: 10px 0;">
+        <img id="locHelpImg" class="confirm-img location-zoom-image" src="" alt="Component Location"
+          tabindex="0" role="button" data-i18n-alt="location_image_alt" aria-label="Tap to zoom component location"
+          style="width: 100%; height: auto; border-radius: 8px; border: 1px solid #ddd;">
+        <div class="location-image-hint" aria-hidden="true" data-i18n="location_image_zoom_hint">Tap image to zoom</div>
+      </div>
+      <p id="locHelpDesc" data-i18n="loc_manual_hint" style="color: #d1d5db; font-size: 15px; margin-bottom: 20px; line-height: 1.5;">
+        Description of where to find the component.
+      </p>
+      <div id="locHelpConn"
+        style="display:none; background:#f0f9ff; border-left:4px solid #0B5DAA; padding:10px; margin-bottom:20px; font-size:14px; color:#0c4a6e;">
+        <!-- Connector info injected here -->
+      </div>
+      <div class="confirm-actions">
+        <button class="btn" id="locHelpClose" style="width: 100%;" data-i18n="got_it_btn">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ECU Speed Box Popup Modal ===== -->
+  <div id="ecuSpeedPopup" class="confirm-modal hidden" role="dialog" aria-modal="true" style="z-index: 10000;">
+    <div class="confirm-card"
+      style="max-width: 550px; background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%); color: #065f46;">
+      <h3 style="margin: 0 0 16px; color: #047857; display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 28px;">📌</span>
+        <span data-i18n="speed_req_title">Vehicle Speed Requirement</span>
+      </h3>
+      <div
+        style="background: rgba(255,255,255,0.8); border-radius: 10px; padding: 16px; margin-bottom: 16px; border-left: 4px solid #10b981;">
+        <p style="margin: 0 0 12px; font-weight: 600; color: #065f46; font-size: 16px;" data-i18n="speed_req_warn">
+          ⚠️ Vehicle speed must be above <b>5 km/h</b> for checking
+        </p>
+        <p style="margin: 0; font-size: 14px; color: #059669; line-height: 1.5;" data-i18n="speed_req_desc">
+          Only test when vehicle is in motion or wheels are rotating at sufficient speed.
+        </p>
+      </div>
+      <div class="confirm-actions">
+        <button class="btn" id="ecuSpeedPopupOK" style="width: 100%; background: #10b981; color: white; border: none;"
+          data-i18n="understood_proceed_btn">Understood - Proceed</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/diagnosticSteps.js"></script>
+  <script src="tml.js"></script>
+  <script src="js/reportRenderer.js"></script>
+  <script src="js/app.js?v=27"></script>
+  <script src="js/pwa.js"></script>
+  
+  <script src="js/index-inline.js?v=21"></script>
+</body>
+
+</html>

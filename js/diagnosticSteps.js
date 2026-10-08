@@ -1,0 +1,725 @@
+// diagnosticSteps.js
+const DIAGNOSTIC_DATA_VERSION = "1.0.0";
+// Contains the configuration data for all diagnostic flows.
+
+// Helper to get correct part number based on selected vehicle model
+function getPartNo(partType) {
+  const modelEl = document.getElementById("vehModel");
+  const model = modelEl && modelEl.options ? modelEl.options[modelEl.selectedIndex]?.text : (modelEl?.value || "");
+  
+  const viking = /viking/i.test(model);
+  if (partType === 'wiring') return viking ? '96503143' : /12m|cheetah/i.test(model) ? '96503123' : '96503123 / 96503143 (Check catalogue)';
+  if (partType === 'positive_cable') return viking ? '96503100' : /12m|cheetah/i.test(model) ? '96503145' : '96503100 / 96503145 (Check catalogue)';
+  if (partType === 'negative_cable') return viking ? '96503144' : '96503074';
+  return 'Check catalogue';
+}
+
+const originalSteps = [
+  {
+    key: "green",
+    q: "With the vehicle ignition ON and ABS 3rd braking relay active, is Green (+24V supply) present at the customer mating connector?",
+    onYes: { badge: "step-pass", next: "black" },
+    onNo: { badge: "step-fail", next: "green_fuse" }
+  },
+  {
+    key: "green_fuse",
+    q: "Is 10A fuse OK in the vehicle fuse box?",
+    onYes: { badge: "step-pass", next: "green_abs3" },
+    onNo: {
+      badge: "step-action",
+      jumpTo: "green",
+      reason: "Replace 10A fuse, then re-check +24V at the mating connector (Green)."
+    }
+  },
+  {
+    key: "green_abs3",
+    q: "Is ABS 3rd relay working?",
+    onYes: { badge: "step-pass", next: "green_vehicle_conn" },
+    onNo: {
+      badge: "step-action",
+      jumpTo: "green",
+      reason: "Replace ABS 3rd relay, then re-check from Green (+24V present?)."
+    }
+  },
+  {
+    key: "green_vehicle_conn",
+    q: "Check vehicle connection/wiring from fuse/relay to mating connector. After fixing, re-check Green (+24V). Is +24V present now?",
+    onYes: { badge: "step-pass", next: "black" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Still no +24V after checks. Suspect upstream wiring or power feed."
+    }
+  },
+  {
+    key: "black",
+    q: "Is Black (Ground) OK (good continuity / low drop)?",
+    onYes: { badge: "step-pass", next: "yellow" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Ground connection is not OK. This indicates a vehicle‑side wiring or grounding problem. The vehicle manufacturer must check and rectify the chassis ground point, wiring harness, and connector conditions."
+    }
+  },
+  {
+    key: "yellow",
+    q: "Is Yellow/White (Vehicle Speed digital signal) present? (Check frequency: should be > 15 Hz while wheels rotate)",
+    onYes: { badge: "step-pass", next: "sb_green" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "No speed pulses or frequency < 15 Hz. Suspect vehicle speed sensor or cluster wiring."
+    }
+  },
+  {
+    key: "sb_green",
+    q: "Is +24V present on the Green wire at the ECU Speed Box connector?",
+    onYes: { badge: "step-pass", next: "sb_black" },
+    onNo: {
+      badge: "step-fail",
+      next: "sb_green_continuity",
+      reason: "No +24V at ECU Speed Box. Need to check continuity to Customer Mating Connector."
+    }
+  },
+  {
+    key: "sb_green_continuity",
+    q: "Check continuity between Customer Mating Connector and ECU Speed Box (Green wire). Is it OK?",
+    onYes: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Continuity is OK but voltage is missing. Check the ABS 3rd relay and vehicle power feed."
+    },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      get reason() {
+        const partNo = getPartNo('wiring');
+        return `Continuity failed. Replace Signal Wiring Harness Part No: ${partNo}. Resolve it before continuing.`;
+      }
+    }
+  },
+  {
+    key: "sb_black",
+    q: "Is Ground (Black) OK at ECU Speed Box (low drop / good continuity to chassis)?",
+    onYes: { badge: "step-pass", next: "sb_grey_pulses" },
+    onNo: {
+      badge: "step-fail",
+      next: "sb_black_continuity",
+      reason: "Ground not OK at ECU Speed Box. Need to check continuity to Customer Mating Connector."
+    }
+  },
+  {
+    key: "sb_black_continuity",
+    q: "Check continuity between Customer Mating Connector and ECU Speed Box (Black wire). Is it OK?",
+    onYes: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Continuity is OK but negative is missing. Check vehicle power feed."
+    },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      get reason() {
+        const partNo = getPartNo('wiring');
+        return `Continuity failed. Replace Signal Wiring Harness Part No: ${partNo}. Resolve it before continuing.`;
+      }
+    }
+  },
+  {
+    key: "sb_grey_pulses",
+    q: "With wheels rotating (>5 km/h), are speed pulses present on the Yellow/White wire at ECU Speed Box input? (Check frequency: should be > 15 Hz)",
+    onYes: { badge: "step-pass", next: "sb_violet_output" },
+    onNo: {
+      badge: "step-fail",
+      next: "sb_bypass_check",
+      reason: "No pulses at Yellow/White wire. Need to isolate if the issue is with the signal path (bypass) or the vehicle speed source itself."
+    }
+  },
+  {
+    key: "sb_bypass_check",
+    q: "Is Yellow/White (vehicle speed) reaching the Speed Booster bypass and continuing as Yellow/White to the ECU Speed Box?",
+    onYes: { badge: "step-pass", next: "sb_yellow_path" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Bypass not fitted/loose or wiring open. Fit/reseat bypass and repair Yellow/White continuity. Resolve it before continuing."
+    }
+  },
+  {
+    key: "sb_yellow_path",
+    q: "Check continuity between Customer Mating Connector (Yellow/White) and Speed Box Booster connector (Yellow/White). Is it OK?",
+    onYes: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Continuity is OK but speed signal is missing. No speed pulses or frequency < 15 Hz. Suspect vehicle speed sensor or cluster wiring."
+    },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      get reason() {
+        const partNo = getPartNo('wiring');
+        return `Continuity failed. Replace Signal Wiring Harness Part No: ${partNo}. Resolve it before continuing.`;
+      }
+    }
+  },
+  {
+    key: "sb_violet_output",
+    q: "With Green=24V, Black=GND and Yellow/White pulses present, when vehicle speed > 5 km/h does ECU Speed Box output (Violet) go to 24V?",
+    onYes: { badge: "step-pass", next: "sw_violet_input" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "ECU Speed Box still won’t give the Violet signal even with correct inputs. Suspect ECU Speed Box fault. Replace with Brakes India Part No: 96310142."
+    }
+  },
+  {
+    key: "sw_violet_input",
+    q: "With vehicle speed > 5 km/h and ECU Speed Box working, is +24V present at the Violet wire (Switch Input)?",
+    onYes: { badge: "step-pass", next: "sw_pink_output" },
+    onNo: {
+      badge: "step-warn",
+      jumpTo: "sw_violet_continuity",
+      reason: "24V not reaching switch. Need to verify wiring continuity from ECU Speed Box."
+    }
+  },
+  {
+    key: "sw_violet_continuity",
+    q: "Check continuity between ECU Speed Box connector and Retarder Switch connector. Is it OK?",
+    onYes: {
+      badge: "step-pass",
+      jumpTo: "sw_violet_input",
+      reason: "Continuity is OK. Re-verify ECU Speed Box output to isolate pin contact seating issue."
+    },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      get reason() {
+        const partNo = getPartNo('wiring');
+        return `Problem in wiring harness continuity. Replace with Signal Wiring Harness Part No: ${partNo}. Resolve it before continuing.`;
+      }
+    }
+  },
+  {
+    key: "sw_pink_output",
+    q: "Turn switch ON. With speed > 5 km/h (Violet=24V), does the Pink wire (Switch Output) show 24V (ON)?",
+    onYes: {
+      badge: "step-pass",
+      next: "aps_pin1_input"
+    },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Violet has 24V but Pink stays 0V when ON. Switch appears faulty (internal damage or carbon formation). Recommended to replace the Retarder Switch."
+    }
+  },
+  {
+    key: "aps_pin1_input",
+    q: "With Retarder Switch ON and vehicle speed > 5 km/h, is +24V present on the Pink wire at the Air Pressure Switch connector?",
+    onYes: { badge: "step-pass", next: "aps_internal_supply" },
+    onNo: {
+      badge: "step-warn",
+      jumpTo: "aps_pin1_continuity",
+      reason: "No 24V detected on the Pink wire. Need to isolate if the issue is in the signal harness or the switch input."
+    }
+  },
+  {
+    key: "aps_pin1_continuity",
+    q: "Check continuity between Retarder Switch and Air Pressure Switch (Signal Wiring Harness). Is it OK?",
+    onYes: { badge: "step-pass", next: "aps_pin1_recheck" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      get reason() {
+        const partNo = getPartNo('wiring');
+        return `Problem in wiring harness continuity. Replace with Signal Wiring Harness Part No: ${partNo}. Resolve it before continuing.`;
+      }
+    }
+  },
+  {
+    key: "aps_pin1_recheck",
+    q: "After confirming continuity, check the Pink wire again for +24V. Is it present now?",
+    onYes: { badge: "step-pass", next: "aps_internal_supply" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      get reason() {
+        const partNo = getPartNo('wiring');
+        return `Problem in wiring harness continuity. Replace with Signal Wiring Harness Part No: ${partNo}. Resolve it before continuing.`;
+      }
+    }
+  },
+  {
+    key: "aps_internal_supply",
+    q: `With 24V confirmed at Pink, is supply distributed internally to all 4 stage inputs in air pressure switch?<br><br>
+        • Slide back rubber boot carefully<br>
+        • Identify common supply wire (C5 – harness tag reference)<br>
+        • Ensure safe probing method`,
+    onYes: { badge: "step-pass", next: "aps_output_check" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      get reason() {
+        return `Problem in wiring harness continuity. Supply not reaching all common terminals. Replace with Pressure Switch Wiring Harness Part No: 96503147. Resolve it before continuing.`;
+      }
+    }
+  },
+  {
+    key: "aps_output_check",
+    q: `Press brake to increase air pressure. Does at least ONE pin (out of 1, 2, 3, or 4) show 24V output from the switches?<br><br>
+        • Identify output supply wire (C1, C2, C3 or C4 – harness tag reference)`,
+      onYes: { badge: "step-pass", next: "aps_stage1" },
+    onNo: {
+      badge: "step-fail",
+      next: "aps_hose_check",
+      reason: "No output from any switch. Need to check if air pressure is reaching the manifold."
+    }
+  },
+  {
+    key: "aps_hose_check",
+    q: "Press brake and check air hose: Is air pressure actually reaching the manifold through the hose?",
+    onYes: {
+      badge: "step-fail",
+      stop: true,
+      get reason() {
+        return "Air present in hose but no switch output. Recommended to replace Air Pressure Switch Assy. Replace with Air Pressure Switch Assy Part No: 96310197. Resolve it before continuing.";
+      }
+    },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "No air reaching manifold. Suspect DB valve issue, air leak in hose, or hose bend/blockage."
+    }
+  },
+  {
+    key: "aps_stage1",
+    q: "At 0.20 bar (3 psi) brake pressure, does APS stage 1 output 24V on C1 / pin 1?",
+    onYes: { badge: "step-pass", next: "aps_stage2" },
+    onNo: { badge: "step-fail", stop: true, reason: "APS stage 1 did not switch at 0.20 bar (3 psi). Check C1/pin 1 wiring and replace Air Pressure Switch Assembly Part No: 96310197 if wiring is OK." }
+  },
+  {
+    key: "aps_stage2",
+    q: "At 0.34 bar (5 psi) brake pressure, does APS stage 2 output 24V on C2 / pin 2?",
+    onYes: { badge: "step-pass", next: "aps_stage3" },
+    onNo: { badge: "step-fail", stop: true, reason: "APS stage 2 did not switch at 0.34 bar (5 psi). Check C2/pin 2 wiring and replace Air Pressure Switch Assembly Part No: 96310197 if wiring is OK." }
+  },
+  {
+    key: "aps_stage3",
+    q: "At 0.47 bar (7 psi) brake pressure, does APS stage 3 output 24V on C3 / pin 3?",
+    onYes: { badge: "step-pass", next: "aps_stage4" },
+    onNo: { badge: "step-fail", stop: true, reason: "APS stage 3 did not switch at 0.47 bar (7 psi). Check C3/pin 3 wiring and replace Air Pressure Switch Assembly Part No: 96310197 if wiring is OK." }
+  },
+  {
+    key: "aps_stage4",
+    q: "At 0.68 bar (10 psi) brake pressure, does APS stage 4 output 24V on C4 / pin 4?",
+    onYes: { badge: "step-pass", next: "rb_precheck_seated" },
+    onNo: { badge: "step-fail", stop: true, reason: "APS stage 4 did not switch at 0.68 bar (10 psi). Check C4/pin 4 wiring and replace Air Pressure Switch Assembly Part No: 96310197 if wiring is OK." }
+  },
+  {
+    key: "rb_precheck_seated",
+    q: "🔴 <strong>Check Point 1:</strong> Is the 8-pin connector fully seated?<br><br><strong>Expected:</strong> Secure mechanical fit with a 'click'.",
+    onYes: { badge: "step-pass", next: "rb_precheck_pins" },
+    onNo: {
+      badge: "step-action",
+      jumpTo: "rb_precheck_seated",
+      reason: "Connector was loose. Reseated firmly. Please confirm it is now fully seated."
+    }
+  },
+  {
+    key: "rb_precheck_pins",
+    q: "🔴 <strong>Check Point 2:</strong> Inspect terminals: Is the 8-pin connector free from corrosion or bent pins?",
+    onYes: { badge: "step-pass", next: "rb_cutoff_pos" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      get reason() {
+        const partNo = getPartNo('wiring');
+        return `Pins damaged or terminals corroded. Replace Signal Wiring Harness Part No: ${partNo}. Resolve it before continuing.`;
+      }
+    }
+  },
+  {
+    key: "rb_cutoff_pos",
+    q: "🔵 Is the Cut-off switch ON and does the Relay Box power up?",
+    onYes: { badge: "step-pass", next: "rb_verify_ground" },
+    onNo: {
+      badge: "step-warn",
+      next: "rb_cutoff_output",
+      reason: "Relay Box did not power up with Cut-off switch ON. Checking Cut-off switch output terminal for +24V."
+    }
+  },
+  {
+    key: "rb_cutoff_output",
+    q: "🔵 Measure Cut-off switch OUTPUT terminal. Is +24V present (Switch ON)?",
+    onYes: { badge: "step-pass", next: "rb_verify_ground" },
+    onNo: { badge: "step-fail", next: "rb_cutoff_input" }
+  },
+  {
+    key: "rb_cutoff_input",
+    q: "🔵 Measure Cut-off switch INPUT terminal (from battery). Is +24V present?",
+    onYes: {
+      badge: "step-fail",
+      stop: true,
+      reason: "INPUT = 24V but OUTPUT = 0V. Cut-off switch faulty. Replace Kit – Cut-Off Switch (E) Part No: 96953039."
+    },
+    onNo: { badge: "step-fail", next: "rb_battery_check" }
+  },
+  {
+    key: "rb_battery_check",
+    q: "🔵 Check directly at Battery terminals. Is +24V present?",
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Battery discharged, loose terminals, or blown fuse. Customer battery issue."
+    },
+    onYes: {
+      badge: "step-fail",
+      stop: true,
+      get reason() {
+        const partNo = getPartNo('positive_cable');
+        return `24V at battery but not reaching cut-off switch. Positive cable damaged or break. Replace Kit Positive Wire Part No: ${partNo}.`;
+      }
+    }
+  },
+  {
+    key: "rb_verify_ground",
+    q: "🟦 Is the relay box negative cable connected to chassis ground?",
+    onYes: { badge: "step-pass", next: "rb_aps_signal_check" },
+    onNo: {
+      badge: "step-action",
+      next: "rb_ground_contact",
+      reason: "Connect negative cable securely to chassis before proceeding."
+    }
+  },
+  {
+    key: "rb_ground_contact",
+    q: "🟦 Is there bare metal-to-metal contact at the ground point (no paint/rust)?",
+    onYes: { badge: "step-pass", next: "rb_negative_cable_condition" },
+    onNo: {
+      badge: "step-action",
+      next: "rb_negative_cable_condition",
+      reason: "Scrape paint/rust from chassis and tighten firmly."
+    }
+  },
+  {
+    key: "rb_negative_cable_condition",
+    q: "🟦 Is the negative cable healthy (not broken, cut, or corroded)?",
+    onYes: { badge: "step-pass", next: "rb_aps_signal_check" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      get reason() {
+        return `Negative cable damaged or corroded. Replace Kit (-VE) Negative Cable Part No: ${getPartNo('negative_cable')}`;
+      }
+    }
+  },
+  {
+    key: "rb_aps_signal_check",
+    q: "🟩 With brake pressed, is 24V signal reaching the relay from the Air Pressure Switch?",
+    onYes: { badge: "step-pass", next: "rb_energization" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "No APS signal to relay. Check air pressure, hose leaks, or pressure switch wiring. Replace APS if required."
+    }
+  },
+  {
+    key: "rb_energization",
+    q: "🟧  Does the relay energize (click) when positive, ground, and signal are present?",
+    onYes: { badge: "step-pass", next: "ret_mb_check" },
+    onNo: {
+      badge: "step-action",
+      next: "rb_fuse_check",
+      reason: "Relay did not click. Proceeding to verify internal fuses and output terminals."
+    }
+  },
+  {
+    key: "rb_fuse_check",
+    q: "🟫 Are the relay fuses (F1 / F2 / F3 / F4) healthy?",
+    onYes: { badge: "step-pass", next: "rb_output_stage1" },
+    onNo: {
+      badge: "step-action",
+      next: "rb_output_stage1",
+      reason: "Replace blown fuse and proceed to re-check output voltage."
+    }
+  },
+  {
+    key: "rb_output_stage1",
+    q: "With the relay energized, is +24V present at Relay 1 / F1 output to the retarder?",
+    onYes: { badge: "step-pass", next: "rb_output_stage2" },
+    onNo: { badge: "step-fail", stop: true, reason: "Relay 1 / F1 output is missing. Replace Kit Relay Box Part No: 96503095 after confirming the fuse and wiring." }
+  },
+  {
+    key: "rb_output_stage2",
+    q: "With the relay energized, is +24V present at Relay 2 / F2 output to the retarder?",
+    onYes: { badge: "step-pass", next: "rb_output_stage3" },
+    onNo: { badge: "step-fail", stop: true, reason: "Relay 2 / F2 output is missing. Replace Kit Relay Box Part No: 96503095 after confirming the fuse and wiring." }
+  },
+  {
+    key: "rb_output_stage3",
+    q: "With the relay energized, is +24V present at Relay 3 / F3 output to the retarder?",
+    onYes: { badge: "step-pass", next: "rb_output_stage4" },
+    onNo: { badge: "step-fail", stop: true, reason: "Relay 3 / F3 output is missing. Replace Kit Relay Box Part No: 96503095 after confirming the fuse and wiring." }
+  },
+  {
+    key: "rb_output_stage4",
+    q: "With the relay energized, is +24V present at Relay 4 / F4 output to the retarder?",
+    onYes: { badge: "step-pass", next: "rb_output_check" },
+    onNo: { badge: "step-fail", stop: true, reason: "Relay 4 / F4 output is missing. Replace Kit Relay Box Part No: 96503095 after confirming the fuse and wiring." }
+  },
+  {
+    key: "rb_output_check",
+    q: "🟨 Is +24V present at the TOP fused output terminal of the relay?",
+    onYes: { badge: "step-pass", next: "rb_final_confirmation" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "No output from relay. Replace with Kit Relay Part No: 96503095"
+    }
+  },
+  {
+    key: "rb_final_confirmation",
+    q: "🟪 Confirm relay-box checks: Supply, ground, signal, fuses, and energization are OK?",
+    onYes: {
+      badge: "step-pass",
+      next: "ret_mb_check"
+    },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "System verification failed. Re-check diagnostic from Relay Box Step 1."
+    }
+  },
+  {
+    key: "ret_mb_check",
+    q: "🟣 Check MB Connector Wiring Harness: Is it free from physical damage or corrosion?",
+    onYes: { badge: "step-pass", next: "ret_power_check" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "MB Connector Wiring Harness damaged. Replace with Part No: 96503094."
+    }
+  },
+  {
+    key: "ret_power_check",
+    q: "🟣 Check Power Wiring Harness: Is it free from cuts, damage, or corrosion?",
+    onYes: { badge: "step-pass", next: "ret_coil_ground_check" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Power Wiring Harness damaged. Replace with Part No: 96503099."
+    }
+  },
+  {
+    key: "ret_coil_ground_check",
+    q: "🟣 Check Ground: Is there NO continuity between retarder earth terminal and chassis (Isolation OK)?",
+    onYes: {
+      badge: "step-pass",
+      next: "ret_power_voltage_check"
+    },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      get reason() {
+        return `Retarder earth terminal isolation failure. Replace with Kit Negative Cable Part No: ${getPartNo('negative_cable')}`;
+      }
+    }
+  },
+  {
+    key: "ret_power_voltage_check",
+    q: "Is +24V present in the power wiring harness from relay box to retarder?",
+    onYes: {
+      badge: "step-pass",
+      next: "dash_backlight_check"
+    },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Power Wiring Harness damaged. Replace with Part No: 96503099."
+    }
+  },
+  {
+    key: "dash_backlight_check",
+    q: "With ignition ON, is +24V present at the Back Light Fuse Block input and dashboard switch backlight?",
+    onYes: { badge: "step-pass", next: "dash_indicator_check" },
+    onNo: { badge: "step-fail", stop: true, reason: "Dashboard backlight supply is missing. Check the Back Light Fuse Block, its fuse, and the vehicle feed." }
+  },
+  {
+    key: "dash_indicator_check",
+    q: "With the retarder system enabled, does the dashboard MB tell-tale/indicator illuminate?",
+    onYes: { badge: "step-pass", next: "dash_taillamp_check" },
+    onNo: { badge: "step-fail", stop: true, reason: "MB dashboard indication is missing. Check the indicator connector, backlight fuse-block output, and dashboard switch/indicator wiring." }
+  },
+  {
+    key: "dash_taillamp_check",
+    q: "When the brake pedal is pressed, is the tail-lamp/stop-light signal present at the retarder indication connector?",
+    onYes: { badge: "step-pass", next: "dash_final_check" },
+    onNo: { badge: "step-fail", stop: true, reason: "Tail-lamp/stop-light input is missing. Check the vehicle stop-lamp circuit and tail-lamp indication connector." }
+  },
+  {
+    key: "dash_final_check",
+    q: "Are the dashboard backlight, MB indicator, and tail-lamp input all working after repair?",
+    onYes: { badge: "step-pass", stop: true, reason: "BSVI electrical checks passed: supply, speed, APS stages, relay stages, retarder power, and dashboard indication are working." },
+    onNo: { badge: "step-fail", stop: true, reason: "Dashboard indication remains faulty. Recheck the Back Light Fuse Block and dashboard indication connector." }
+  }
+];
+
+const triageSteps = [
+  {
+    key: "triage_q1",
+    q: "⚡ <strong>Triage Check 1 of 3 — Power Supply:</strong><br><br>With ignition ON and the ABS 3rd braking relay active, is <strong>+24V present at the Green wire</strong> of the Customer Mating Connector?",
+    onYes: { badge: "step-pass", next: "triage_q2" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "No +24V at mating connector. Check 10A fuse in the vehicle fuse box and ABS 3rd relay. Replace the faulty component and retest from this step."
+    }
+  },
+  {
+    key: "triage_q2",
+    q: "⚡ <strong>Triage Check 2 of 3 — Relay Energization:</strong><br><br>With brake pressed and vehicle speed > 5 km/h, does the <strong>Relay Box click / energize</strong>?",
+    onYes: { badge: "step-pass", next: "triage_q3" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Relay not energizing. Suspect signal path fault — verify: ① Retarder Switch is ON, ② Air Pressure Switch has brake air pressure, ③ ECU Speed Box Violet output = 24V at speed > 5 km/h. Switch to NOT WORKING mode for full guided diagnosis."
+    }
+  },
+  {
+    key: "triage_q3",
+    q: "⚡ <strong>Triage Check 3 of 3 — Relay Output:</strong><br><br>Are <strong>+24V outputs present on all four fused relay stages (F1-F4)</strong> of the Relay Box?",
+    onYes: {
+      badge: "step-pass",
+      stop: true,
+      reason: "Power supply chain is healthy. Fault is in the retarder unit side — inspect MB Connector Harness and Power Wiring Harness for cuts, corrosion, or damage."
+    },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Relay Box is not switching one or more stages. Replace with Kit Relay Box Part No: 96503095."
+    }
+  }
+];
+
+const intermittentSteps = [
+  {
+    key: "int_q1",
+    q: "🔁 <strong>Intermittent Check 1 of 5 — Connector Seating:</strong><br><br>Are <strong>ALL connector locking clips on all 6 connectors fully clicked and mechanically secure</strong>? (Gently tug each connector to test vibration resistance)",
+    onYes: { badge: "step-pass", next: "int_q2" },
+    onNo: {
+      badge: "step-action",
+      next: "int_q2",
+      reason: "Reseat all loose connectors firmly until they click. Vibration is the #1 cause of intermittent retarder faults — a connector that looks seated may not be fully locked."
+    }
+  },
+  {
+    key: "int_q2",
+    q: "🔁 <strong>Intermittent Check 2 of 5 — Pin Corrosion:</strong><br><br>Inspect ALL connector pins on both signal harness and relay harness — are they <strong>free from green oxidation or corrosion</strong>?",
+    onYes: { badge: "step-pass", next: "int_q3" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Corroded pins cause high-resistance intermittent contact. Clean with electrical contact cleaner and a pin cleaning brush. If oxidation is severe or pins are damaged, replace the affected harness."
+    }
+  },
+  {
+    key: "int_q3",
+    q: "🔁 <strong>Intermittent Check 3 of 5 — Harness Routing:</strong><br><br>Inspect the full Signal Wiring Harness routing along the chassis — is it <strong>free from chafing on frame edges, pinching, or heat damage from exhaust?</strong>",
+    onYes: { badge: "step-pass", next: "int_q4" },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Damaged harness insulation causes intermittent open or short circuit under vibration or heat. Reroute harness away from sharp edges and heat sources. Protect with split conduit. Replace Signal Wiring Harness if wire insulation is cut or melted."
+    }
+  },
+  {
+    key: "int_q4",
+    q: "🔁 <strong>Intermittent Check 4 of 5 — Ground Resistance:</strong><br><br>Measure resistance between the Relay Box ground terminal and chassis. Is it <strong>less than 0.5 Ω</strong>?",
+    onYes: { badge: "step-pass", next: "int_q5" },
+    onNo: {
+      badge: "step-action",
+      next: "int_q5",
+      reason: "High ground resistance (> 0.5 Ω) causes voltage-sensitive intermittent faults under load. Scrape chassis ground point to bare metal, clean and retighten firmly."
+    }
+  },
+  {
+    key: "int_q5",
+    q: "🔁 <strong>Intermittent Check 5 of 5 — Final Retest:</strong><br><br>After all above corrections, test the retarder at speed > 5 km/h with brake pressed. Is the <strong>intermittent fault now resolved</strong>?",
+    onYes: {
+      badge: "step-pass",
+      stop: true,
+      reason: "Final checks passed. Retarder unit and full system are functioning correctly."
+    },
+    onNo: {
+      badge: "step-fail",
+      stop: true,
+      reason: "Intermittent fault persists after connector and ground checks. A deeper electrical fault is present — switch to NOT WORKING mode and follow the full step-by-step guided diagnosis for complete fault isolation."
+    }
+  }
+];
+
+const bundledDiagnosticData = {
+  version: DIAGNOSTIC_DATA_VERSION,
+  originalSteps,
+  triageSteps,
+  intermittentSteps
+};
+
+function validateDiagnosticCatalog(catalog) {
+  const errors = [];
+  for (const [name, steps, start] of [
+    ['originalSteps', catalog?.originalSteps, 'green'],
+    ['triageSteps', catalog?.triageSteps, 'triage_q1'],
+    ['intermittentSteps', catalog?.intermittentSteps, 'int_q1']
+  ]) {
+    if (!Array.isArray(steps) || !steps.length) {
+      errors.push(`${name} is empty or missing`);
+      continue;
+    }
+    const keys = new Set(steps.map(step => step.key));
+    if (keys.size !== steps.length) errors.push(`${name} contains duplicate keys`);
+    if (!keys.has(start)) errors.push(`${name} is missing start node ${start}`);
+    const reachable = new Set([start]);
+    const queue = [start];
+    while (queue.length) {
+      const key = queue.shift();
+      const step = steps.find(candidate => candidate.key === key);
+      for (const branch of [step?.onYes, step?.onNo]) {
+        if (!branch) {
+          errors.push(`${name}.${step?.key || 'unknown'} is missing a branch`);
+          continue;
+        }
+        const target = branch.jumpTo || branch.next;
+        if (!branch.stop && !keys.has(target)) errors.push(`${name}.${step.key} points to missing ${target}`);
+        if (target && keys.has(target) && !reachable.has(target)) {
+          reachable.add(target);
+          queue.push(target);
+        }
+      }
+    }
+    for (const step of steps) if (!reachable.has(step.key)) errors.push(`${name}.${step.key} is unreachable from ${start}`);
+  }
+  return errors;
+}
+
+window.validateDiagnosticCatalog = validateDiagnosticCatalog;
+const bundledCatalogErrors = validateDiagnosticCatalog(bundledDiagnosticData);
+if (bundledCatalogErrors.length) console.error('[Diagnostic data] Bundled catalog validation failed:', bundledCatalogErrors);
+
+// Keep startup non-blocking. The bundled catalog makes the first screen usable
+// offline; a newer server catalog is applied when it becomes available.
+window.DIAGNOSTIC_DATA = bundledDiagnosticData;
+window.DIAGNOSTIC_DATA_READY = Promise.resolve(bundledDiagnosticData);
+if (typeof fetch === 'function' && window.location?.protocol !== 'file:') {
+  window.DIAGNOSTIC_DATA_READY = fetch(`/data/diagnosticSteps.v${DIAGNOSTIC_DATA_VERSION}.json`, { cache: 'no-cache' })
+    .then(response => response.ok ? response.json() : null)
+    .then(catalog => {
+      if (!catalog || !catalog.version || validateDiagnosticCatalog(catalog).length) return bundledDiagnosticData;
+      window.DIAGNOSTIC_DATA = catalog;
+      window.dispatchEvent?.(new Event('diagnosticdataready'));
+      return catalog;
+    })
+    .catch(error => {
+      console.warn('[Diagnostic data] Using bundled catalog.', error);
+      return bundledDiagnosticData;
+    });
+}
