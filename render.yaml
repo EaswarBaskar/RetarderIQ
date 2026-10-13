@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: retarder-iq-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: retarder-iq-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_ORIGIN
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: GOOGLE_APPS_SCRIPT_URL
+        sync: false
+      - key: POWER_AUTOMATE_FLOW_URL
+        sync: false
+
+  - type: worker
+    name: retarder-iq-forward-worker
+    runtime: node
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: npm run worker
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: retarder-iq-db
+          property: connectionString
+      - key: GOOGLE_APPS_SCRIPT_URL
+        sync: false
+      - key: POWER_AUTOMATE_FLOW_URL
+        sync: false
+
+databases:
+  - name: retarder-iq-db
+    plan: free
