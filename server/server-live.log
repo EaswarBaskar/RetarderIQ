@@ -1,0 +1,2 @@
+Retarder IQ server listening on port 3000
+Forwarding is handled by the separate worker process: npm run worker

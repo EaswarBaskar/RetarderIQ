@@ -1,0 +1,6 @@
+
+> retarder-iq-api@1.0.0 start
+> node src/server.js
+
+Retarder IQ server listening on port 3001
+Forwarding is handled by the separate worker process: npm run worker
